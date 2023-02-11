@@ -1,223 +1,214 @@
-package ch04_test
+package rotate_test
 
 import (
-	"ch04"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/telemachus/gopl/ch04/rotate"
 )
 
-func compareIntSlices(s1, s2 []int) bool {
-	if len(s1) != len(s2) {
-		return false
-	}
-	for i, n := range s1 {
-		if n != s2[i] {
-			return false
-		}
-	}
-	return true
+type testCase struct {
+	r     int
+	orig  []int
+	wantr []int
+	wantl []int
 }
 
-func TestReverseRotate(t *testing.T) {
-	tests := map[string]struct {
-		rotations int
-		nums      []int
-		expected  []int
-	}{
-		"empty slice": {rotations: 5, nums: []int{}, expected: []int{}},
-		"odd slice even rotations": {rotations: 2, nums: []int{1,2,3}, expected: []int{2,3,1}},
-		"even slice even rotations": {rotations: 2, nums: []int{1,2,3,4}, expected: []int{3,4,1,2}},
-		"odd slice odd rotations": {rotations: 3, nums: []int{1,2,3}, expected: []int{1,2,3}},
-		"even slice odd rotations": {rotations: 3, nums: []int{1,2,3,4}, expected: []int{2,3,4,1}},
-		"rotations > len(slice)": {rotations: 5, nums: []int{1,2,3}, expected: []int{2,3,1}},
+func newTestCases() map[string]testCase {
+	return map[string]testCase{
+		"empty slice": {
+			100,
+			[]int{},
+			[]int{},
+			[]int{},
+		},
+		"one-item slice": {
+			4,
+			[]int{1},
+			[]int{1},
+			[]int{1},
+		},
+		"three-item slice": {
+			1,
+			[]int{1, 2, 3},
+			[]int{3, 1, 2},
+			[]int{2, 3, 1},
+		},
+		"eight-item slice": {
+			1,
+			[]int{1, 2, 3, 4, 5, 6, 7, 8},
+			[]int{8, 1, 2, 3, 4, 5, 6, 7},
+			[]int{2, 3, 4, 5, 6, 7, 8, 1},
+		},
+		"rotation > length of slice": {
+			7,
+			[]int{1, 2, 3, 4, 5},
+			[]int{4, 5, 1, 2, 3},
+			[]int{3, 4, 5, 1, 2},
+		},
+		"negative rotation": {
+			-1,
+			[]int{1, 2, 3, 4, 5},
+			[]int{2, 3, 4, 5, 1},
+			[]int{5, 1, 2, 3, 4},
+		},
+		"negative rotation > length of slice": {
+			-7,
+			[]int{1, 2, 3, 4, 5},
+			[]int{3, 4, 5, 1, 2},
+			[]int{4, 5, 1, 2, 3},
+		},
 	}
+}
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			ch04.ReverseRotate(tc.nums, tc.rotations)
-			if !compareIntSlices(tc.expected, tc.nums) {
-				t.Errorf("expected %#v; actual %#v", tc.expected, tc.nums)
+func TestRight(t *testing.T) {
+	t.Parallel()
+
+	testCases := newTestCases()
+
+	for msg, tc := range testCases {
+		tc := tc
+
+		t.Run(msg, func(t *testing.T) {
+			t.Parallel()
+
+			dupe := make([]int, len(tc.orig))
+			copy(dupe, tc.orig)
+			got := rotate.Right(dupe, tc.r)
+
+			if !cmp.Equal(got, tc.wantr) {
+				t.Errorf(
+					"rotate.Right(%+v, %d) = %+v; want %+v\n",
+					dupe,
+					tc.r,
+					got,
+					tc.wantr,
+				)
 			}
 		})
 	}
 }
 
-func BenchmarkReverseRotateSmallSlice(b *testing.B) {
-	nums := []int{1,2,3,4,5,6,7,8,9,10}
-	for i := 0; i < b.N; i++ {
-		ch04.ReverseRotate(nums, 5)
-	}
-}
+func TestLeft(t *testing.T) {
+	t.Parallel()
 
-func BenchmarkReverseRotateLargeSlice(b *testing.B) {
-	nums := make([]int, 0, 100000)
-	for i := 1; i <= 100000; i++ {
-		nums = append(nums, i)
-	}
-	for i := 0; i < b.N; i++ {
-		ch04.ReverseRotate(nums, 100)
-	}
-}
+	testCases := newTestCases()
 
-func TestReversePopUnshiftRotate(t *testing.T) {
-	tests := map[string]struct {
-		rotations int
-		nums      []int
-		expected  []int
-	}{
-		"empty slice": {rotations: 5, nums: []int{}, expected: []int{}},
-		"odd slice even rotations": {rotations: 2, nums: []int{1,2,3}, expected: []int{2,3,1}},
-		"even slice even rotations": {rotations: 2, nums: []int{1,2,3,4}, expected: []int{3,4,1,2}},
-		"odd slice odd rotations": {rotations: 3, nums: []int{1,2,3}, expected: []int{1,2,3}},
-		"even slice odd rotations": {rotations: 3, nums: []int{1,2,3,4}, expected: []int{2,3,4,1}},
-		"rotations > len(slice)": {rotations: 5, nums: []int{1,2,3}, expected: []int{2,3,1}},
-	}
+	for msg, tc := range testCases {
+		tc := tc
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			tc.nums = ch04.PopUnshiftRotate(tc.nums, tc.rotations)
-			if !compareIntSlices(tc.expected, tc.nums) {
-				t.Errorf("expected %#v; actual %#v", tc.expected, tc.nums)
+		t.Run(msg, func(t *testing.T) {
+			t.Parallel()
+
+			dupe := make([]int, len(tc.orig))
+			copy(dupe, tc.orig)
+			got := rotate.Left(dupe, tc.r)
+
+			if !cmp.Equal(got, tc.wantl) {
+				t.Errorf(
+					"rotate.Left(%+v, %d) = %+v; want %+v\n",
+					dupe,
+					tc.r,
+					got,
+					tc.wantl,
+				)
 			}
 		})
 	}
 }
 
-func BenchmarkPopUnshiftRotateSmallSlice(b *testing.B) {
-	nums := []int{1,2,3,4,5,6,7,8,9,10}
-	for i := 0; i < b.N; i++ {
-		ch04.PopUnshiftRotate(nums, 5)
-	}
-}
+func TestReverseRight(t *testing.T) {
+	t.Parallel()
 
-func BenchmarkPopUnshiftRotateLargeSlice(b *testing.B) {
-	nums := make([]int, 0, 100000)
-	for i := 1; i <= 100000; i++ {
-		nums = append(nums, i)
-	}
-	for i := 0; i < b.N; i++ {
-		ch04.PopUnshiftRotate(nums, 100)
-	}
-}
+	testCases := newTestCases()
 
-func TestAppendRotate(t *testing.T) {
-	tests := map[string]struct {
-		rotations int
-		nums      []int
-		expected  []int
-	}{
-		"empty slice": {rotations: 5, nums: []int{}, expected: []int{}},
-		"odd slice even rotations": {rotations: 2, nums: []int{1,2,3}, expected: []int{2,3,1}},
-		"even slice even rotations": {rotations: 2, nums: []int{1,2,3,4}, expected: []int{3,4,1,2}},
-		"odd slice odd rotations": {rotations: 3, nums: []int{1,2,3}, expected: []int{1,2,3}},
-		"even slice odd rotations": {rotations: 3, nums: []int{1,2,3,4}, expected: []int{2,3,4,1}},
-		"rotations > len(slice)": {rotations: 5, nums: []int{1,2,3}, expected: []int{2,3,1}},
-	}
+	for msg, tc := range testCases {
+		tc := tc
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			tc.nums = ch04.AppendRotate(tc.nums, tc.rotations)
-			if !compareIntSlices(tc.expected, tc.nums) {
-				t.Errorf("expected %#v; actual %#v", tc.expected, tc.nums)
+		t.Run(msg, func(t *testing.T) {
+			t.Parallel()
+
+			got := make([]int, len(tc.orig))
+			copy(got, tc.orig)
+			rotate.ReverseRight(got, tc.r)
+
+			if !cmp.Equal(got, tc.wantr) {
+				t.Errorf(
+					"rotate.ReverseRight(%+v, %d) = %+v; want %+v\n",
+					tc.orig,
+					tc.r,
+					got,
+					tc.wantr,
+				)
 			}
 		})
 	}
 }
 
-func BenchmarkAppendRotateSmallSlice(b *testing.B) {
-	nums := []int{1,2,3,4,5,6,7,8,9,10}
-	for i := 0; i < b.N; i++ {
-		ch04.AppendRotate(nums, 5)
-	}
-}
+func TestReverseLeft(t *testing.T) {
+	t.Parallel()
 
-func BenchmarkAppendRotateLargeSlice(b *testing.B) {
-	nums := make([]int, 0, 100000)
-	for i := 1; i <= 100000; i++ {
-		nums = append(nums, i)
-	}
-	for i := 0; i < b.N; i++ {
-		ch04.AppendRotate(nums, 100)
-	}
-}
+	testCases := newTestCases()
 
-func TestRotateRight(t *testing.T) {
-	tests := map[string]struct {
-		rotations int
-		nums      []int
-		expected  []int
-	}{
-		"empty slice": {rotations: 5, nums: []int{}, expected: []int{}},
-		"odd slice even rotations": {rotations: 2, nums: []int{1,2,3}, expected: []int{3,1,2}},
-		"even slice even rotations": {rotations: 2, nums: []int{1,2,3,4}, expected: []int{3,4,1,2}},
-		"odd slice odd rotations": {rotations: 3, nums: []int{1,2,3}, expected: []int{1,2,3}},
-		"even slice odd rotations": {rotations: 3, nums: []int{1,2,3,4}, expected: []int{4,1,2,3}},
-		"rotations > len(slice)": {rotations: 5, nums: []int{1,2,3}, expected: []int{3,1,2}},
-	}
+	for msg, tc := range testCases {
+		tc := tc
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			tc.nums = ch04.RotateRight(tc.nums, tc.rotations)
-			if !compareIntSlices(tc.expected, tc.nums) {
-				t.Errorf("expected %#v; actual %#v", tc.expected, tc.nums)
+		t.Run(msg, func(t *testing.T) {
+			t.Parallel()
+
+			got := make([]int, len(tc.orig))
+			copy(got, tc.orig)
+			rotate.ReverseLeft(got, tc.r)
+
+			if !cmp.Equal(got, tc.wantl) {
+				t.Errorf(
+					"rotate.ReverseLeft(%+v, %d) = %+v; want %+v\n",
+					tc.orig,
+					tc.r,
+					got,
+					tc.wantl,
+				)
 			}
 		})
 	}
 }
 
-func BenchmarkRotateRightSmallSlice(b *testing.B) {
-	nums := []int{1,2,3,4,5,6,7,8,9,10}
+func BenchmarkRightSmallSlice(b *testing.B) {
+	nums := make([]int, 10)
+
+	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		ch04.RotateRight(nums, 5)
+		rotate.Right(nums, 5)
 	}
 }
 
-func BenchmarkRotateRightLargeSlice(b *testing.B) {
-	nums := make([]int, 0, 100000)
-	for i := 1; i <= 100000; i++ {
-		nums = append(nums, i)
-	}
+func BenchmarkRightLargeSlice(b *testing.B) {
+	nums := make([]int, 1000000)
+
+	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		ch04.RotateRight(nums, 100)
+		rotate.Right(nums, 500000)
 	}
 }
 
-func TestRotateLeft(t *testing.T) {
-	tests := map[string]struct {
-		rotations int
-		nums      []int
-		expected  []int
-	}{
-		"empty slice": {rotations: 5, nums: []int{}, expected: []int{}},
-		"odd slice even rotations": {rotations: 2, nums: []int{1,2,3}, expected: []int{3,1,2}},
-		"even slice even rotations": {rotations: 2, nums: []int{1,2,3,4}, expected: []int{3,4,1,2}},
-		"odd slice odd rotations": {rotations: 3, nums: []int{1,2,3}, expected: []int{1,2,3}},
-		"even slice odd rotations": {rotations: 3, nums: []int{1,2,3,4}, expected: []int{4,1,2,3}},
-		"rotations > len(slice)": {rotations: 5, nums: []int{1,2,3}, expected: []int{3,1,2}},
-	}
+func BenchmarkReverseRightSmallSlice(b *testing.B) {
+	nums := make([]int, 10)
 
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			tc.nums = ch04.RotateLeft(tc.nums, tc.rotations)
-			if !compareIntSlices(tc.expected, tc.nums) {
-				t.Errorf("expected %#v; actual %#v", tc.expected, tc.nums)
-			}
-		})
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		rotate.ReverseRight(nums, 5)
 	}
 }
 
-func BenchmarkRotateLeftSmallSlice(b *testing.B) {
-	nums := []int{1,2,3,4,5,6,7,8,9,10}
-	for i := 0; i < b.N; i++ {
-		ch04.RotateLeft(nums, 5)
-	}
-}
+func BenchmarkReverseRightLargeSlice(b *testing.B) {
+	nums := make([]int, 1000000)
 
-func BenchmarkRotateLeftLargeSlice(b *testing.B) {
-	nums := make([]int, 0, 100000)
-	for i := 1; i <= 100000; i++ {
-		nums = append(nums, i)
-	}
+	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
-		ch04.RotateLeft(nums, 100)
+		rotate.ReverseRight(nums, 500000)
 	}
 }
